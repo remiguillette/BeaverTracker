@@ -28,7 +28,7 @@ export async function addUidAndTokenToPdf(
     // Nombre de pages dans le document
     const pages = pdfDoc.getPages();
     
-    // Date actuelle pour le horodatage
+    // Date actuelle pour l'horodatage
     const now = new Date();
     const timestamp = now.toLocaleString('fr-FR');
     
@@ -37,30 +37,67 @@ export async function addUidAndTokenToPdf(
       const page = pages[i];
       const { width, height } = page.getSize();
       
-      // Texte à ajouter avec UID, token et numéro de page
-      let text = `BeaverDoc - UID: ${uid} | Token: ${token} | Page ${i + 1}/${pages.length}`;
+      // Version simplifiée en format court pour être plus lisible
+      const uidShort = uid.substring(uid.length - 8);
+      const tokenShort = token.substring(token.length - 8);
       
-      // Ajoute des informations de signature si disponibles
-      if (signatureInfo) {
-        text = `${text} | ${signatureInfo} | Horodaté le ${timestamp}`;
-      }
+      // Texte à ajouter avec UID et token en format court
+      const text = `BeaverDoc: P${i + 1}/${pages.length} | UID:${uidShort} | Token:${tokenShort}`;
       
-      // Calcule la largeur du texte pour le centrer
+      // Calcule la largeur du texte
       const textWidth = font.widthOfTextAtSize(text, fontSize);
-      const x = (width - textWidth) / 2;
+      const x = width - textWidth - 10; // Aligné à droite avec une marge
       
       // Position en bas de page avec une petite marge
-      const y = 10;
+      const y = 5;
       
-      // Ajoute le texte à la page avec une couleur gris pâle semi-transparente
+      // Crée un rectangle blanc semi-transparent pour servir de fond au texte
+      page.drawRectangle({
+        x: x - 2,
+        y: y - 2,
+        width: textWidth + 4,
+        height: fontSize + 4,
+        color: rgb(1, 1, 1), // Blanc
+        opacity: 0.7 // Semi-transparent
+      });
+      
+      // Ajoute le texte à la page avec une couleur foncée
       page.drawText(text, {
         x,
         y,
         size: fontSize,
         font,
-        color: rgb(0.7, 0.7, 0.7), // Gris pâle
-        opacity: 0.5 // Semi-transparent
+        color: rgb(0.3, 0.3, 0.3), // Gris foncé
+        opacity: 0.9 // Bien visible
       });
+      
+      // Si le document est signé, ajouter l'info de signature sur une ligne séparée
+      if (signatureInfo) {
+        const sigText = `Signé: ${signatureInfo.split(':')[1].trim()} | ${timestamp}`;
+        const sigTextWidth = font.widthOfTextAtSize(sigText, fontSize);
+        const sigX = width - sigTextWidth - 10;
+        const sigY = y + fontSize + 3;
+        
+        // Rectangle blanc pour le texte de signature
+        page.drawRectangle({
+          x: sigX - 2,
+          y: sigY - 2,
+          width: sigTextWidth + 4,
+          height: fontSize + 4,
+          color: rgb(1, 1, 1),
+          opacity: 0.7
+        });
+        
+        // Texte de signature
+        page.drawText(sigText, {
+          x: sigX,
+          y: sigY,
+          size: fontSize,
+          font,
+          color: rgb(0.3, 0.3, 0.3),
+          opacity: 0.9
+        });
+      }
     }
     
     // Sérialise le document modifié en un nouveau buffer
