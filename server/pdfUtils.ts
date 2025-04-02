@@ -48,8 +48,8 @@ export async function addUidAndTokenToPdf(
       const textWidth = font.widthOfTextAtSize(text, fontSize);
       const x = width - textWidth - 10; // Aligné à droite avec une marge
       
-      // Position en bas de page avec une petite marge
-      const y = 5;
+      // Position en bas de page avec marge suffisante pour éviter le rognage
+      const y = 20; // Augmenté pour éviter d'être coupé
       
       // Crée un rectangle blanc semi-transparent pour servir de fond au texte
       page.drawRectangle({
