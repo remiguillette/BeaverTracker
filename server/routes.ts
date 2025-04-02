@@ -5,6 +5,7 @@ import multer from "multer";
 import * as z from "zod";
 import { insertDocumentSchema, insertAuditLogSchema, insertDocumentShareSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
+import { addUidAndTokenToPdf } from "./pdfUtils";
 
 // Configure multer storage
 const upload = multer({
@@ -69,12 +70,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         signAfterImport: false
       };
 
+      const uid = generateUID();
+      const token = generateToken();
+      let fileBuffer = req.file.buffer;
+      
+      // Si c'est un PDF et que l'option addToken est activée, ajouter l'UID et le token
+      if (req.file.mimetype === 'application/pdf' && options.addToken) {
+        try {
+          // Ajoute l'UID et le token au PDF
+          fileBuffer = await addUidAndTokenToPdf(
+            req.file.buffer,
+            uid,
+            token
+          );
+          
+          console.log(`UID et token ajoutés au document lors de l'importation: ${req.file.originalname}`);
+        } catch (pdfError) {
+          console.error("Erreur lors de l'ajout de l'UID et du token au PDF:", pdfError);
+          // En cas d'erreur, on utilise le document original
+          fileBuffer = req.file.buffer;
+        }
+      }
+
       // Create document entry
       const document = {
         name: req.file.originalname,
-        uid: generateUID(),
-        token: generateToken(),
-        content: req.file.buffer.toString('base64'),
+        uid: uid,
+        token: token,
+        content: fileBuffer.toString('base64'),
         contentType: req.file.mimetype,
         size: `${(req.file.size / 1024 / 1024).toFixed(2)} MB`,
         creatorId: 1, // For demo, this would come from auth in a real app
@@ -115,9 +138,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // In a real app, we would apply a digital signature here
       const signatureData = `digital_signature_${randomUUID()}`;
       
+      let contentToUpdate = document.content;
+      
+      // Si c'est un PDF et qu'il y a un contenu, mettre à jour le document avec la signature
+      if (document.contentType === 'application/pdf' && document.content) {
+        try {
+          const contentBuffer = Buffer.from(document.content as string, 'base64');
+          
+          // Ajoute l'UID, le token et maintenant la signature au PDF
+          const signatureInfo = `Signé électroniquement: ${signatureData.substring(0, 8).toUpperCase()}`;
+          const updatedBuffer = await addUidAndTokenToPdf(
+            contentBuffer,
+            document.uid,
+            document.token || 'NO-TOKEN',
+            signatureInfo
+          );
+          
+          // Met à jour le contenu avec le document signé
+          contentToUpdate = updatedBuffer.toString('base64');
+          
+          console.log(`PDF signé avec succès: ${document.name}`);
+        } catch (pdfError) {
+          console.error("Erreur lors de la signature du PDF:", pdfError);
+          // En cas d'erreur, on garde le contenu original
+        }
+      }
+      
       // Update document
       const updatedDoc = await storage.updateDocument(documentId, {
         ...document,
+        content: contentToUpdate,
         isSigned: true,
         signatureData
       });
@@ -127,7 +177,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         documentId,
         userId: 1, // For demo, this would come from auth in a real app
         action: 'sign',
-        details: `Document signed with certificate #${signatureData.substring(0, 8).toUpperCase()}`
+        details: `Document signé avec le certificat #${signatureData.substring(0, 8).toUpperCase()}`
       });
 
       res.json(updatedDoc);
@@ -239,21 +289,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         details: `Document downloaded by user ID: 1`
       });
       
-      // In a real application, you would render the token on the document here
-      // For this demo, we'll just send the document as is
       if (!document.content) {
         return res.status(404).json({ message: "Contenu du document non trouvé" });
       }
       
       // Le contenu est défini comme non-null à ce stade
-      const content = Buffer.from(document.content as string, 'base64');
+      const contentBuffer = Buffer.from(document.content as string, 'base64');
+      
+      let finalBuffer = contentBuffer;
+      
+      // Si c'est un PDF, ajouter l'UID et le token directement dans le document
+      if (document.contentType === 'application/pdf') {
+        try {
+          // Ajoute l'UID et le token au PDF, et la signature si le document est signé
+          if (document.isSigned && document.signatureData) {
+            const signatureInfo = `Signé électroniquement: ${document.signatureData.substring(0, 8).toUpperCase()}`;
+            finalBuffer = await addUidAndTokenToPdf(
+              contentBuffer, 
+              document.uid, 
+              document.token || 'NO-TOKEN',
+              signatureInfo
+            );
+          } else {
+            finalBuffer = await addUidAndTokenToPdf(
+              contentBuffer, 
+              document.uid, 
+              document.token || 'NO-TOKEN'
+            );
+          }
+          
+          console.log(`Ajout de l'UID et du token au document PDF: ${document.name}`);
+        } catch (pdfError) {
+          console.error("Erreur lors de l'ajout de l'UID et du token au PDF:", pdfError);
+          // En cas d'erreur, on utilise le document original
+          finalBuffer = contentBuffer;
+        }
+      }
       
       // Set appropriate headers based on content type
       res.setHeader('Content-Type', document.contentType || 'application/octet-stream');
       res.setHeader('Content-Disposition', `attachment; filename="${document.name}"`);
       
-      // Send the document
-      res.send(content);
+      // Send the modified document
+      res.send(finalBuffer);
     } catch (error) {
       console.error("Download error:", error);
       res.status(500).json({ message: "Erreur lors du téléchargement du document" });
