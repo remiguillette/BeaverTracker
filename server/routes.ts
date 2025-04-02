@@ -220,6 +220,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Erreur lors de la suppression du partage" });
     }
   });
+  
+  // Download a document with its token
+  app.get('/api/documents/:id/download', async (req, res) => {
+    try {
+      const documentId = parseInt(req.params.id);
+      const document = await storage.getDocument(documentId);
+      
+      if (!document) {
+        return res.status(404).json({ message: "Document non trouvé" });
+      }
+      
+      // Create audit log entry for the download
+      await storage.createAuditLog({
+        documentId,
+        userId: 1, // For demo, this would come from auth in a real app
+        action: 'download',
+        details: `Document downloaded by user ID: 1`
+      });
+      
+      // In a real application, you would render the token on the document here
+      // For this demo, we'll just send the document as is
+      if (!document.content) {
+        return res.status(404).json({ message: "Contenu du document non trouvé" });
+      }
+      
+      // Le contenu est défini comme non-null à ce stade
+      const content = Buffer.from(document.content as string, 'base64');
+      
+      // Set appropriate headers based on content type
+      res.setHeader('Content-Type', document.contentType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${document.name}"`);
+      
+      // Send the document
+      res.send(content);
+    } catch (error) {
+      console.error("Download error:", error);
+      res.status(500).json({ message: "Erreur lors du téléchargement du document" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

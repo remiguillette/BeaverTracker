@@ -8,13 +8,15 @@ export const fr = {
     add: "Ajouter",
     adding: "Ajout...",
     or: "ou",
-    unknown: "Inconnu"
+    unknown: "Inconnu",
+    signing: "Signature en cours..."
   },
   nav: {
     file: "Fichier",
     new: "Nouveau",
     open: "Ouvrir",
     save: "Enregistrer",
+    download: "Télécharger",
     print: "Imprimer",
     share: "Partager",
     importPDF: "Importer PDF",
@@ -100,6 +102,7 @@ export const fr = {
     view: "Consultation du document",
     edit: "Modification du document",
     sign: "Signature du document",
-    share: "Partage du document"
+    share: "Partage du document",
+    download: "Téléchargement du document"
   }
 };

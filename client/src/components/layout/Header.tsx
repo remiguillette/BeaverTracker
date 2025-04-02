@@ -2,9 +2,12 @@ import { useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ChevronDown, UserPlus, Printer, Save, FilePlus, FolderOpen, FileUp, FileText, CheckCircle } from 'lucide-react';
+import { ChevronDown, UserPlus, Printer, Save, FilePlus, FolderOpen, FileUp, FileText, CheckCircle, Download } from 'lucide-react';
 import { useModal } from '@/lib/utils/modals';
 import { fr } from '@/lib/i18n/french';
+import { useMutation } from '@tanstack/react-query';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 export default function Header() {
   const { openModal } = useModal();
@@ -23,6 +26,13 @@ export default function Header() {
   const handleSaveDocument = () => {
     // Functionality would be handled in a real application
   };
+  
+  const handleDownloadDocument = () => {
+    const documentId = location.split('/')[2]; // Extraire l'ID du document de l'URL
+    if (documentId) {
+      window.location.href = `/api/documents/${documentId}/download`;
+    }
+  };
 
   const handleImportPDF = () => {
     openModal('import');
@@ -39,6 +49,33 @@ export default function Header() {
   const handlePrintDocument = () => {
     window.print();
   };
+  
+  const { toast } = useToast();
+  
+  const signDocument = useMutation({
+    mutationFn: async () => {
+      const documentId = location.split('/')[2];
+      if (!documentId) throw new Error("ID de document manquant");
+      return apiRequest('POST', `/api/documents/${documentId}/sign`, {});
+    },
+    onSuccess: () => {
+      const documentId = location.split('/')[2];
+      if (documentId) {
+        queryClient.invalidateQueries({ queryKey: [`/api/documents/${documentId}`] });
+        toast({
+          title: fr.document.signSuccess,
+          description: fr.document.signSuccessDesc,
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        variant: "destructive",
+        title: fr.common.error,
+        description: error.message,
+      });
+    }
+  });
 
   return (
     <header className="bg-secondary shadow-md">
@@ -46,8 +83,7 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo and Title */}
           <div className="flex items-center">
-            <Link href="/">
-              <a className="flex items-center">
+            <Link href="/" className="flex items-center">
                 <svg 
                   className="h-10 w-10 mr-3 text-primary" 
                   viewBox="0 0 24 24"
@@ -59,7 +95,6 @@ export default function Header() {
                   <path d="M7 15H13V17H7V15Z" />
                 </svg>
                 <h1 className="text-primary text-xl font-medium">BeaverDoc</h1>
-              </a>
             </Link>
           </div>
           
@@ -133,14 +168,30 @@ export default function Header() {
                 {fr.nav.save}
               </Button>
             )}
+            
+            {/* Download Button - Only show when viewing a document */}
+            {isDocumentView && (
+              <Button 
+                variant="ghost" 
+                className="flex items-center text-text-primary hover:text-primary transition-colors"
+                onClick={handleDownloadDocument}
+              >
+                <Download className="mr-1 h-4 w-4" />
+                {fr.nav.download}
+              </Button>
+            )}
           </nav>
           
           {/* User Section */}
           <div className="flex items-center">
             {isDocumentView && (
-              <Button className="bg-primary text-white mr-4 hover:bg-primary/90">
+              <Button 
+                className="bg-primary text-white mr-4 hover:bg-primary/90"
+                onClick={() => signDocument.mutate()}
+                disabled={signDocument.isPending}
+              >
                 <CheckCircle className="mr-1 h-4 w-4" />
-                {fr.document.sign}
+                {signDocument.isPending ? fr.common.signing : fr.document.sign}
               </Button>
             )}
             <div className="relative">
