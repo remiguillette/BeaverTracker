@@ -52,12 +52,13 @@ export class MemStorage implements IStorage {
     this.auditLogId = 1;
     this.documentShareId = 1;
     
-    // Initialize with a demo user
+    // Initialize with Rémi Guillette user
     this.createUser({
-      username: "jean.dupont",
+      username: "remi.guillette",
       password: "password123",
-      name: "Jean Dupont",
-      initials: "JD"
+      name: "Rémi Guillette",
+      initials: "RG",
+      company: "Rémi Guillette Consulting"
     });
   }
 
@@ -74,7 +75,12 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      // S'assurer que le champ company est défini explicitement
+      company: insertUser.company || null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -98,6 +104,11 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
       updatedAt: now,
+      // S'assurer que les champs nullables sont définis explicitement
+      content: insertDocument.content || null,
+      size: insertDocument.size || null,
+      isSigned: insertDocument.isSigned || false,
+      signatureData: insertDocument.signatureData || null
     };
     this.documents.set(id, document);
     return document;
@@ -129,7 +140,8 @@ export class MemStorage implements IStorage {
     const log: AuditLog = { 
       ...insertLog, 
       id,
-      timestamp: new Date()
+      timestamp: new Date(),
+      details: insertLog.details || null
     };
     this.auditLogs.set(id, log);
     return log;
@@ -176,7 +188,8 @@ export class MemStorage implements IStorage {
         username: `user${insertShare.userId}`,
         password: "password123",
         name: "Marie Lefebvre",
-        initials: "ML"
+        initials: "ML",
+        company: "Entreprise XYZ"
       });
     }
     

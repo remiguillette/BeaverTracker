@@ -1,7 +1,9 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { createHash } from 'crypto';
 
 /**
  * Ajoute un UID et un token comme texte semi-transparent en bas de chaque page d'un document PDF
+ * Met également à jour les métadonnées du document pour une meilleure validité juridique
  * 
  * @param pdfBuffer Buffer contenant le PDF original
  * @param uid Identifiant unique du document
@@ -99,6 +101,35 @@ export async function addUidAndTokenToPdf(
         });
       }
     }
+    
+    // Calcul d'un hash SHA-256 du contenu pour vérification d'intégrité
+    const contentHash = createHash('sha256')
+      .update(pdfBuffer)
+      .digest('hex');
+      
+    // Mise à jour des métadonnées du document pour validité juridique
+    pdfDoc.setTitle(`Document sécurisé - ${uid}`);
+    pdfDoc.setAuthor('Rémi Guillette');
+    pdfDoc.setCreator('Rémi Guillette Consulting');
+    pdfDoc.setProducer('BeaverDoc Secure Document System');
+    
+    // Informations de sécurité complètes
+    const securityInfo = `UID:${uid} | Token:${token} | Hash:${contentHash} | Timestamp:${new Date().toISOString()}`;
+    const issuerInfo = `Certifié par: Rémi Guillette Consulting | Vérification: beaverdoc.verify.com`;
+    
+    // Définir le sujet avec informations de sécurité détaillées
+    pdfDoc.setSubject(`Document authentifié par BeaverDoc - ${securityInfo} | ${issuerInfo}`);
+    
+    // Ajouter des informations de sécurité dans les mots-clés
+    const keywords = ['document sécurisé', 'authentifié', uid, token, contentHash, 'Rémi Guillette Consulting'];
+    
+    if (signatureInfo) {
+      keywords.push('signé électroniquement');
+      keywords.push(`signature:${signatureInfo}`);
+      keywords.push(`date_signature:${new Date().toISOString()}`);
+    }
+    
+    pdfDoc.setKeywords(keywords);
     
     // Sérialise le document modifié en un nouveau buffer
     const modifiedPdfBytes = await pdfDoc.save();

@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   password: text("password").notNull(),
   name: text("name").notNull(),
   initials: text("initials").notNull(),
+  company: text("company"),
 });
 
 export const documents = pgTable("documents", {
@@ -48,6 +49,7 @@ export const insertUserSchema = createInsertSchema(users).pick({
   password: true,
   name: true,
   initials: true,
+  company: true,
 });
 
 export const insertDocumentSchema = createInsertSchema(documents).omit({
