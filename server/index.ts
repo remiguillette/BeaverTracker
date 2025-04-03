@@ -1,7 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-// Ne plus appliquer automatiquement les middlewares de sécurité
+import { securityHeaders, validateInput, rateLimiter, auditLog } from "./middlewares/security";
 import path from "path";
 import fs from "fs";
 
@@ -13,8 +13,11 @@ if (!fs.existsSync(tempDir)) {
 
 const app = express();
 
-// Middlewares de sécurité appliqués directement dans routes.ts
-// pour éviter d'interférer avec Vite
+// Appliquer les middlewares de sécurité uniquement aux routes /api
+app.use('/api', securityHeaders);
+app.use('/api', validateInput);
+app.use('/api', rateLimiter);
+app.use('/api', auditLog);
 
 // Middlewares standards
 app.use(express.json());
