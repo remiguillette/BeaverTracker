@@ -8,6 +8,7 @@ import { fr } from '@/lib/i18n/french';
 import { useMutation } from '@tanstack/react-query';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
+import beaverLogo from '@/assets/beaver.png';
 
 export default function Header() {
   const { openModal } = useModal();
@@ -84,17 +85,12 @@ export default function Header() {
           {/* Logo and Title */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
-                <svg 
-                  className="h-10 w-10 mr-3 text-primary" 
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M19 3H5C3.9 3 3 3.9 3 5V19C3 20.1 3.9 21 5 21H19C20.1 21 21 20.1 21 19V5C21 3.9 20.1 3 19 3ZM5 5H19V19H5V5Z" />
-                  <path d="M7 7H17V9H7V7Z" />
-                  <path d="M7 11H17V13H7V11Z" />
-                  <path d="M7 15H13V17H7V15Z" />
-                </svg>
-                <h1 className="text-primary text-xl font-medium">BeaverDoc</h1>
+                <img 
+                  src={beaverLogo}
+                  alt="Beaver Logo" 
+                  className="h-10 w-10 mr-3 object-contain"
+                />
+                <h1 className="text-primary text-xl font-bold">BeaverDoc</h1>
             </Link>
           </div>
           
@@ -195,8 +191,8 @@ export default function Header() {
               </Button>
             )}
             <div className="relative">
-              <div className="h-8 w-8 rounded-full bg-accent flex items-center justify-center text-white text-sm">
-                JD
+              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">
+                RG
               </div>
             </div>
           </div>

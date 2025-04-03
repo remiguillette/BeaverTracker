@@ -1,6 +1,89 @@
-node_modules
-dist
+# Fichiers de dépendances
+node_modules/
+package-lock.json
+yarn.lock
+
+# Fichiers de build
+/dist
+/build
+/out
+/.next
+/.nuxt
+.output/
+
+# Variables d'environnement
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Fichiers de configuration locaux
+config.local.js
+config.dev.js
+
+# Journaux
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Fichiers du système d'exploitation
 .DS_Store
-server/public
-vite.config.ts.*
-*.tar.gz
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Fichiers de cache
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.rts2_cache_*
+
+# Fichiers IDE et éditeurs
+/.idea
+.project
+.classpath
+.c9/
+*.launch
+*.sublime-workspace
+.settings/
+*.swp
+*.swo
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Documents téléchargés temporaires
+temp_uploads/
+uploads/
+downloaded_files/
+
+# Fichiers de données
+*.sqlite
+*.db
+
+# Rapports et couverture de tests
+/coverage
+/.nyc_output
+/cypress/videos
+/cypress/screenshots
+
+# Fichiers de déploiement
+.vercel
+.netlify
+.serverless/
+.pulumi/
+
+# Autres
+.temp
+.tmp
+.history
