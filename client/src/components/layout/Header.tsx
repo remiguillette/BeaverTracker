@@ -81,16 +81,16 @@ export default function Header() {
   return (
     <header className="bg-secondary shadow-md">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-20">
           {/* Logo and Title */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
                 <img 
                   src={beaverLogo}
                   alt="Beaver Logo" 
-                  className="h-10 w-10 mr-3 object-contain"
+                  className="h-14 w-14 mr-4 object-contain"
                 />
-                <h1 className="text-primary text-xl font-bold">BeaverDoc</h1>
+                <h1 className="text-primary text-2xl font-bold">BeaverDoc</h1>
             </Link>
           </div>
           
@@ -99,9 +99,9 @@ export default function Header() {
             {/* File Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" className="flex items-center text-text-primary hover:text-primary transition-colors">
+                <Button variant="ghost" className="flex items-center text-text-primary hover:text-primary transition-colors text-lg px-4 py-2">
                   {fr.nav.file}
-                  <ChevronDown className="ml-1 h-4 w-4" />
+                  <ChevronDown className="ml-2 h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-secondary border-gray-700 text-text-primary">
@@ -133,10 +133,10 @@ export default function Header() {
             {isDocumentView && (
               <Button 
                 variant="ghost" 
-                className="flex items-center text-text-primary hover:text-primary transition-colors"
+                className="flex items-center text-text-primary hover:text-primary transition-colors text-lg px-4 py-2"
                 onClick={handleShareDocument}
               >
-                <UserPlus className="mr-1 h-4 w-4" />
+                <UserPlus className="mr-2 h-5 w-5" />
                 {fr.nav.share}
               </Button>
             )}
@@ -145,10 +145,10 @@ export default function Header() {
             {isDocumentView && (
               <Button 
                 variant="ghost" 
-                className="flex items-center text-text-primary hover:text-primary transition-colors"
+                className="flex items-center text-text-primary hover:text-primary transition-colors text-lg px-4 py-2"
                 onClick={handlePrintDocument}
               >
-                <Printer className="mr-1 h-4 w-4" />
+                <Printer className="mr-2 h-5 w-5" />
                 {fr.nav.print}
               </Button>
             )}
@@ -157,10 +157,10 @@ export default function Header() {
             {isDocumentView && (
               <Button 
                 variant="ghost" 
-                className="flex items-center text-text-primary hover:text-primary transition-colors"
+                className="flex items-center text-text-primary hover:text-primary transition-colors text-lg px-4 py-2"
                 onClick={handleSaveDocument}
               >
-                <Save className="mr-1 h-4 w-4" />
+                <Save className="mr-2 h-5 w-5" />
                 {fr.nav.save}
               </Button>
             )}
@@ -169,10 +169,10 @@ export default function Header() {
             {isDocumentView && (
               <Button 
                 variant="ghost" 
-                className="flex items-center text-text-primary hover:text-primary transition-colors"
+                className="flex items-center text-text-primary hover:text-primary transition-colors text-lg px-4 py-2"
                 onClick={handleDownloadDocument}
               >
-                <Download className="mr-1 h-4 w-4" />
+                <Download className="mr-2 h-5 w-5" />
                 {fr.nav.download}
               </Button>
             )}
@@ -182,16 +182,16 @@ export default function Header() {
           <div className="flex items-center">
             {isDocumentView && (
               <Button 
-                className="bg-primary text-white mr-4 hover:bg-primary/90"
+                className="bg-primary text-white mr-5 hover:bg-primary/90 text-lg px-5 py-2 h-auto"
                 onClick={() => signDocument.mutate()}
                 disabled={signDocument.isPending}
               >
-                <CheckCircle className="mr-1 h-4 w-4" />
+                <CheckCircle className="mr-2 h-5 w-5" />
                 {signDocument.isPending ? fr.common.signing : fr.document.sign}
               </Button>
             )}
             <div className="relative">
-              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white text-sm">
+              <div className="h-12 w-12 rounded-full bg-primary flex items-center justify-center text-white text-base font-medium">
                 RG
               </div>
             </div>
