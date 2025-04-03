@@ -1,8 +1,22 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+// Ne plus appliquer automatiquement les middlewares de sécurité
+import path from "path";
+import fs from "fs";
+
+// Créer un répertoire pour les fichiers temporaires s'il n'existe pas
+const tempDir = path.join(process.cwd(), 'temp_uploads');
+if (!fs.existsSync(tempDir)) {
+  fs.mkdirSync(tempDir, { recursive: true });
+}
 
 const app = express();
+
+// Middlewares de sécurité appliqués directement dans routes.ts
+// pour éviter d'interférer avec Vite
+
+// Middlewares standards
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -43,8 +57,9 @@ app.use((req, res, next) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    console.error('Erreur serveur:', err);
     res.status(status).json({ message });
-    throw err;
+    // Ne pas relancer l'erreur pour éviter de planter le serveur
   });
 
   // importantly only setup vite in development and after
@@ -59,7 +74,7 @@ app.use((req, res, next) => {
   // ALWAYS serve the app on port 5000
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = 5000;
+  const port = 5007;
   server.listen({
     port,
     host: "0.0.0.0",

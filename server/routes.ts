@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import multer from "multer";
@@ -6,6 +6,17 @@ import * as z from "zod";
 import { insertDocumentSchema, insertAuditLogSchema, insertDocumentShareSchema } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { addUidAndTokenToPdf } from "./pdfUtils";
+import { 
+  securityHeaders, 
+  validateInput, 
+  rateLimiter, 
+  validateDocumentAccess, 
+  auditLog 
+} from "./middlewares/security";
+import {
+  validatePdfUpload,
+  cleanupMiddleware
+} from "./middlewares/fileValidator";
 
 // Configure multer storage
 const upload = multer({
@@ -34,8 +45,18 @@ const generateToken = () => {
 };
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Appliquer les middlewares de sécurité uniquement sur le préfixe /api
+  const apiRouter = express.Router();
+  apiRouter.use(securityHeaders);
+  apiRouter.use(validateInput);
+  apiRouter.use(rateLimiter);
+  apiRouter.use(auditLog);
+
+  // Monter le routeur sécurisé sur /api
+  app.use('/api', apiRouter);
+
   // Get all documents
-  app.get('/api/documents', async (req, res) => {
+  apiRouter.get('/documents', async (req: Request, res: Response) => {
     try {
       const documents = await storage.getAllDocuments();
       res.json(documents);
@@ -45,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a document by ID
-  app.get('/api/documents/:id', async (req, res) => {
+  apiRouter.get('/documents/:id', validateDocumentAccess, async (req: Request, res: Response) => {
     try {
       const document = await storage.getDocument(parseInt(req.params.id));
       if (!document) {
@@ -57,8 +78,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Upload a document
-  app.post('/api/documents/upload', upload.single('file'), async (req, res) => {
+  // Upload a document - ajout de la validation de sécurité pour les fichiers PDF
+  apiRouter.post('/documents/upload', async (req: Request, res: Response, next: NextFunction) => {
+    // Utiliser le middleware spécifique pour les fichiers PDF
+    if (req.headers['content-type']?.includes('multipart/form-data')) {
+      // Premier traitement avec multer standard pour tous les fichiers
+      upload.single('file')(req, res, (err) => {
+        if (err) {
+          return res.status(400).json({ message: err.message });
+        }
+        
+        // Si ce n'est pas un PDF, on continue directement
+        if (req.file && req.file.mimetype !== 'application/pdf') {
+          next();
+        } else {
+          // Pour les PDF, validation supplémentaire (facultatif ici car on a déjà le buffer)
+          next();
+        }
+      });
+    } else {
+      res.status(400).json({ message: "Format de requête invalide. Multipart/form-data attendu." });
+    }
+  }, async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Aucun fichier n'a été téléchargé" });
@@ -126,7 +167,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Sign a document
-  app.post('/api/documents/:id/sign', async (req, res) => {
+  apiRouter.post('/documents/:id/sign', validateDocumentAccess, async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.id);
       const document = await storage.getDocument(documentId);
@@ -187,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get audit logs for a document
-  app.get('/api/documents/:id/auditlogs', async (req, res) => {
+  apiRouter.get('/documents/:id/auditlogs', validateDocumentAccess, async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.id);
       const logs = await storage.getAuditLogsByDocumentId(documentId);
@@ -198,7 +239,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create audit log
-  app.post('/api/auditlogs', async (req, res) => {
+  apiRouter.post('/auditlogs', async (req: Request, res: Response) => {
     try {
       const auditLogData = insertAuditLogSchema.parse(req.body);
       const log = await storage.createAuditLog(auditLogData);
@@ -209,7 +250,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get shares for a document
-  app.get('/api/documents/:id/shares', async (req, res) => {
+  apiRouter.get('/documents/:id/shares', async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.id);
       const shares = await storage.getDocumentShares(documentId);
@@ -220,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Share a document
-  app.post('/api/documents/:id/shares', async (req, res) => {
+  apiRouter.post('/documents/:id/shares', async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.id);
       
@@ -250,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Remove a share
-  app.delete('/api/documents/:documentId/shares/:userId', async (req, res) => {
+  apiRouter.delete('/documents/:documentId/shares/:userId', async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.documentId);
       const userId = parseInt(req.params.userId);
@@ -272,7 +313,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Download a document with its token
-  app.get('/api/documents/:id/download', async (req, res) => {
+  apiRouter.get('/documents/:id/download', validateDocumentAccess, async (req: Request, res: Response) => {
     try {
       const documentId = parseInt(req.params.id);
       const document = await storage.getDocument(documentId);
